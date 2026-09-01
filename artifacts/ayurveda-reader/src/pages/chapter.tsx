@@ -6,16 +6,10 @@ import { getStaticChapterContent, staticLibrary, type LibraryChapter as Chapter,
 function ReadableContent({ content }: { content: string }) {
   const blocks = useMemo(() => content.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean), [content]);
   return (
-    <div className="space-y-7 font-display text-base leading-[1.7] text-foreground/90 md:text-lg">
-      {blocks.map((block, index) => {
-        const lines = block.split('\n');
-        const isHeading = lines.length === 1 && (block.length < 90 || /^chapter|^section|^part/i.test(block));
-        return isHeading ? (
-          <h2 key={index} className="pt-3 font-display text-2xl leading-tight text-primary md:text-3xl">{block}</h2>
-        ) : (
-          <p key={index} className="whitespace-pre-line">{block}</p>
-        );
-      })}
+    <div className="space-y-7 font-display text-foreground/90 text-[clamp(20px,4vw,28px)] leading-[1.9]">
+      {blocks.map((block, index) => (
+        <p key={index} className="whitespace-pre-line text-[inherit] leading-[inherit]">{block}</p>
+      ))}
     </div>
   );
 }
