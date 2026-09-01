@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, ExternalLink, CircleAlert, LoaderCircle } from 'lucide-react';
 import { Link, useParams } from 'wouter';
-import { getStaticChapterContent, staticLibrary, type LibraryChapter as Chapter } from '@/lib/static-library';
+import { getStaticChapterContent, staticLibrary, type LibraryChapter as Chapter, type LibraryChapterContent } from '@/lib/static-library';
 
 function ReadableContent({ content }: { content: string }) {
   const blocks = useMemo(() => content.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean), [content]);
@@ -23,15 +23,45 @@ function ReadableContent({ content }: { content: string }) {
 export default function ChapterPage() {
   const params = useParams<{ chapterId?: string }>();
   const chapterId = params.chapterId ?? '';
-  const content = getStaticChapterContent(chapterId);
   const library = staticLibrary;
-  const chapter = content?.chapter;
+  const chapter = library.chapters.find((item) => item.id === chapterId);
+  const [content, setContent] = useState<LibraryChapterContent | undefined>();
+  const [loading, setLoading] = useState(Boolean(chapterId));
+
+  useEffect(() => {
+    let cancelled = false;
+    setContent(undefined);
+    setLoading(Boolean(chapterId));
+    if (!chapterId) return;
+    getStaticChapterContent(chapterId).then((result) => {
+      if (!cancelled) {
+        setContent(result);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setContent(undefined);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [chapterId]);
   const allChapters = library.chapters;
   const currentIndex = chapter ? allChapters.findIndex((item) => item.id === chapter.id) : -1;
   const previous = currentIndex > 0 ? allChapters[currentIndex - 1] : undefined;
   const next = currentIndex >= 0 ? allChapters[currentIndex + 1] : undefined;
   const source = library.sources.find((item) => item.id === chapter?.sourceId);
   const section = library.sections.find((item) => item.id === chapter?.sectionId);
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex min-h-[70dvh] max-w-xl flex-col items-center justify-center px-5 text-center" data-testid="status-chapter-loading">
+        <LoaderCircle className="animate-spin text-accent" size={28} strokeWidth={1.4} />
+        <h1 className="mt-4 font-display text-3xl text-primary">Loading chapter…</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Only this chapter’s text is being loaded.</p>
+      </div>
+    );
+  }
 
   if (!content || !chapter || !chapterId) {
     return (
