@@ -6,6 +6,7 @@ import NotFound from '@/pages/not-found';
 import { ReaderShell } from '@/components/reader-shell';
 import LibraryPage from '@/pages/library';
 import ChapterPage from '@/pages/chapter';
+import BookmarksPage from '@/pages/bookmarks';
 import {
   Route,
   Switch,
@@ -23,6 +24,7 @@ function Router() {
         <Switch>
           <Route path="/" component={LibraryPage} />
           <Route path="/chapter/:chapterId" component={ChapterPage} />
+          <Route path="/bookmarks" component={BookmarksPage} />
           <Route component={NotFound} />
         </Switch>
       </ReaderShell>
