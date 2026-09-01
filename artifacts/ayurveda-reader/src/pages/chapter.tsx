@@ -22,14 +22,24 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
       setPlayingChapter(false);
       return;
     }
-    const fullText = blocks.join(' ... '); // Add pause between blocks
-    const utterance = new SpeechSynthesisUtterance(fullText);
-    utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
-    utterance.onend = () => setPlayingChapter(false);
-    utterance.onerror = () => setPlayingChapter(false);
+
     setPlayingChapter(true);
     setPlayingIndex(null);
-    window.speechSynthesis.speak(utterance);
+
+    // Some browsers have issues with very long utterances.
+    // It's safer to queue them block by block.
+    blocks.forEach((block, index) => {
+      const utterance = new SpeechSynthesisUtterance(block);
+      utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
+
+      // Only set playingChapter to false when the LAST block finishes or errors
+      if (index === blocks.length - 1) {
+        utterance.onend = () => setPlayingChapter(false);
+        utterance.onerror = () => setPlayingChapter(false);
+      }
+
+      window.speechSynthesis.speak(utterance);
+    });
   };
 
   const handlePlay = (text: string, index: number) => {
