@@ -42,37 +42,37 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
           const bookmarked = isBookmarked(chapterId, index);
           const highlighted = isHighlighted(chapterId, index);
           return (
-            <div key={index} className="group relative">
-              <div className="absolute -left-12 top-1 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div key={index} className="group relative flex flex-col gap-3">
+              <p className={`whitespace-pre-line text-[inherit] leading-[inherit] rounded-md transition-colors ${highlighted ? 'bg-yellow-500/20 px-2 -mx-2' : ''}`}>{block}</p>
+              <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
                 <button
                   type="button"
                   onClick={() => toggleBookmark(chapterId, index)}
-                  className={`rounded-full p-1.5 transition-colors ${bookmarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  className={`rounded-full p-2 transition-colors ${bookmarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                   aria-label="Toggle Bookmark"
                   title="Bookmark"
                 >
-                  <Bookmark size={14} className={bookmarked ? 'fill-current' : ''} />
+                  <Bookmark size={16} className={bookmarked ? 'fill-current' : ''} />
                 </button>
                 <button
                   type="button"
                   onClick={() => toggleHighlight(chapterId, index)}
-                  className={`rounded-full p-1.5 transition-colors ${highlighted ? 'bg-yellow-400 text-yellow-900' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  className={`rounded-full p-2 transition-colors ${highlighted ? 'bg-yellow-400 text-yellow-900' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                   aria-label="Toggle Highlight"
                   title="Highlight"
                 >
-                  <Highlighter size={14} />
+                  <Highlighter size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handlePlay(block, index)}
-                  className={`rounded-full p-1.5 transition-colors ${playingIndex === index ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  className={`rounded-full p-2 transition-colors ${playingIndex === index ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                   aria-label={playingIndex === index ? "Stop reading" : "Read aloud"}
                   title={playingIndex === index ? "Stop" : "Play"}
                 >
-                  {playingIndex === index ? <Square size={14} className="fill-current" /> : <Play size={14} className="fill-current" />}
+                  {playingIndex === index ? <Square size={16} className="fill-current" /> : <Play size={16} className="fill-current" />}
                 </button>
               </div>
-              <p className={`whitespace-pre-line text-[inherit] leading-[inherit] rounded-md transition-colors ${highlighted ? 'bg-yellow-500/20 px-2 -mx-2' : ''}`}>{block}</p>
             </div>
           );
         })}
