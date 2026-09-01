@@ -6,14 +6,31 @@ import { useReaderSettings } from '@/hooks/use-reader-settings';
 
 function ReadableContent({ content, chapterId }: { content: string, chapterId: string }) {
   const blocks = useMemo(() => content.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean), [content]);
-  const { settings, toggleBookmark, isBookmarked, toggleHighlight, isHighlighted } = useReaderSettings();
+  const { settings, toggleBookmark, isBookmarked, toggleHighlight, isHighlighted, toggleChapterBookmark, isChapterBookmarked } = useReaderSettings();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [playingChapter, setPlayingChapter] = useState(false);
 
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  const handlePlayChapter = () => {
+    window.speechSynthesis.cancel();
+    if (playingChapter) {
+      setPlayingChapter(false);
+      return;
+    }
+    const fullText = blocks.join(' ... '); // Add pause between blocks
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
+    utterance.onend = () => setPlayingChapter(false);
+    utterance.onerror = () => setPlayingChapter(false);
+    setPlayingChapter(true);
+    setPlayingIndex(null);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handlePlay = (text: string, index: number) => {
     window.speechSynthesis.cancel();
@@ -26,8 +43,11 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
     utterance.onend = () => setPlayingIndex(null);
     utterance.onerror = () => setPlayingIndex(null);
     setPlayingIndex(index);
+    setPlayingChapter(false);
     window.speechSynthesis.speak(utterance);
   };
+
+  const isChapBookmarked = isChapterBookmarked(chapterId);
 
   return (
     <div
@@ -37,6 +57,24 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
         lineHeight: settings.spacing,
       }}
     >
+      <div className="flex items-center gap-4 mb-8">
+        <button
+          type="button"
+          onClick={() => toggleChapterBookmark(chapterId)}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors border ${isChapBookmarked ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-border hover:bg-muted'}`}
+        >
+          <Bookmark size={16} className={isChapBookmarked ? 'fill-current' : ''} />
+          Bookmark Chapter
+        </button>
+        <button
+          type="button"
+          onClick={handlePlayChapter}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors border ${playingChapter ? 'bg-green-500 text-white border-green-500' : 'bg-background text-muted-foreground border-border hover:bg-muted'}`}
+        >
+          {playingChapter ? <Square size={16} className="fill-current" /> : <Play size={16} className="fill-current" />}
+          Play Chapter
+        </button>
+      </div>
       <div className="flex flex-col gap-7" style={{ gap: `${1.75 * settings.spacing}rem` }}>
         {blocks.map((block, index) => {
           const bookmarked = isBookmarked(chapterId, index);
@@ -44,35 +82,37 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
           return (
             <div key={index} className="group relative flex flex-col gap-3">
               <p className={`whitespace-pre-line text-[inherit] leading-[inherit] rounded-md transition-colors ${highlighted ? 'bg-yellow-500/20 px-2 -mx-2' : ''}`}>{block}</p>
-              <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={() => toggleBookmark(chapterId, index)}
-                  className={`rounded-full p-2 transition-colors ${bookmarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                  aria-label="Toggle Bookmark"
-                  title="Bookmark"
-                >
-                  <Bookmark size={16} className={bookmarked ? 'fill-current' : ''} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleHighlight(chapterId, index)}
-                  className={`rounded-full p-2 transition-colors ${highlighted ? 'bg-yellow-400 text-yellow-900' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                  aria-label="Toggle Highlight"
-                  title="Highlight"
-                >
-                  <Highlighter size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePlay(block, index)}
-                  className={`rounded-full p-2 transition-colors ${playingIndex === index ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                  aria-label={playingIndex === index ? "Stop reading" : "Read aloud"}
-                  title={playingIndex === index ? "Stop" : "Play"}
-                >
-                  {playingIndex === index ? <Square size={16} className="fill-current" /> : <Play size={16} className="fill-current" />}
-                </button>
-              </div>
+              {!settings.hideShlokaControls && (
+                <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => toggleBookmark(chapterId, index)}
+                    className={`rounded-full p-2 transition-colors ${bookmarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    aria-label="Toggle Bookmark"
+                    title="Bookmark"
+                  >
+                    <Bookmark size={16} className={bookmarked ? 'fill-current' : ''} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleHighlight(chapterId, index)}
+                    className={`rounded-full p-2 transition-colors ${highlighted ? 'bg-yellow-400 text-yellow-900' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    aria-label="Toggle Highlight"
+                    title="Highlight"
+                  >
+                    <Highlighter size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePlay(block, index)}
+                    className={`rounded-full p-2 transition-colors ${playingIndex === index ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    aria-label={playingIndex === index ? "Stop reading" : "Read aloud"}
+                    title={playingIndex === index ? "Stop" : "Play"}
+                  >
+                    {playingIndex === index ? <Square size={16} className="fill-current" /> : <Play size={16} className="fill-current" />}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
