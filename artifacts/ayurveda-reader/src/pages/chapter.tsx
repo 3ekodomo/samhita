@@ -1,15 +1,82 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, ExternalLink, CircleAlert, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, ExternalLink, CircleAlert, LoaderCircle, Bookmark, Highlighter, Play, Square } from 'lucide-react';
 import { Link, useParams } from 'wouter';
 import { getStaticChapterContent, staticLibrary, type LibraryChapter as Chapter, type LibraryChapterContent } from '@/lib/static-library';
+import { useReaderSettings } from '@/hooks/use-reader-settings';
 
-function ReadableContent({ content }: { content: string }) {
+function ReadableContent({ content, chapterId }: { content: string, chapterId: string }) {
   const blocks = useMemo(() => content.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean), [content]);
+  const { settings, toggleBookmark, isBookmarked, toggleHighlight, isHighlighted } = useReaderSettings();
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handlePlay = (text: string, index: number) => {
+    window.speechSynthesis.cancel();
+    if (playingIndex === index) {
+      setPlayingIndex(null);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
+    utterance.onend = () => setPlayingIndex(null);
+    utterance.onerror = () => setPlayingIndex(null);
+    setPlayingIndex(index);
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
-    <div className="space-y-7 font-display text-foreground/90 text-[clamp(20px,4vw,28px)] leading-[1.9]">
-      {blocks.map((block, index) => (
-        <p key={index} className="whitespace-pre-line text-[inherit] leading-[inherit]">{block}</p>
-      ))}
+    <div
+      className="font-display text-foreground/90"
+      style={{
+        fontSize: `clamp(${20 * settings.textSize}px, ${4 * settings.textSize}vw, ${28 * settings.textSize}px)`,
+        lineHeight: settings.spacing,
+      }}
+    >
+      <div className="flex flex-col gap-7" style={{ gap: `${1.75 * settings.spacing}rem` }}>
+        {blocks.map((block, index) => {
+          const bookmarked = isBookmarked(chapterId, index);
+          const highlighted = isHighlighted(chapterId, index);
+          return (
+            <div key={index} className="group relative">
+              <div className="absolute -left-12 top-1 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => toggleBookmark(chapterId, index)}
+                  className={`rounded-full p-1.5 transition-colors ${bookmarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  aria-label="Toggle Bookmark"
+                  title="Bookmark"
+                >
+                  <Bookmark size={14} className={bookmarked ? 'fill-current' : ''} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleHighlight(chapterId, index)}
+                  className={`rounded-full p-1.5 transition-colors ${highlighted ? 'bg-yellow-400 text-yellow-900' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  aria-label="Toggle Highlight"
+                  title="Highlight"
+                >
+                  <Highlighter size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePlay(block, index)}
+                  className={`rounded-full p-1.5 transition-colors ${playingIndex === index ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  aria-label={playingIndex === index ? "Stop reading" : "Read aloud"}
+                  title={playingIndex === index ? "Stop" : "Play"}
+                >
+                  {playingIndex === index ? <Square size={14} className="fill-current" /> : <Play size={14} className="fill-current" />}
+                </button>
+              </div>
+              <p className={`whitespace-pre-line text-[inherit] leading-[inherit] rounded-md transition-colors ${highlighted ? 'bg-yellow-500/20 px-2 -mx-2' : ''}`}>{block}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -92,7 +159,7 @@ export default function ChapterPage() {
 
       <div className="grid gap-12 pt-12 md:grid-cols-[minmax(0,680px)_220px] md:gap-20 md:pt-16">
         <div data-testid="content-chapter">
-          {content.content ? <ReadableContent content={content.content} /> : (
+          {content.content ? <ReadableContent content={content.content} chapterId={chapter.id} /> : (
             <div className="rounded-lg border border-dashed border-border p-8 text-center" data-testid="status-chapter-empty">
               <BookOpen className="mx-auto text-muted-foreground" size={24} strokeWidth={1.4} />
               <p className="mt-3 font-display text-xl text-primary">The text is not available yet.</p>
