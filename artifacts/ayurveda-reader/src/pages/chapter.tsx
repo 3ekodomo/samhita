@@ -17,45 +17,68 @@ function ReadableContent({ content, chapterId }: { content: string, chapterId: s
   }, []);
 
   const handlePlayChapter = () => {
-    window.speechSynthesis.cancel();
     if (playingChapter) {
       setPlayingChapter(false);
+      setPlayingIndex(null);
       return;
     }
 
     setPlayingChapter(true);
-    setPlayingIndex(null);
-
-    // Some browsers have issues with very long utterances.
-    // It's safer to queue them block by block.
-    blocks.forEach((block, index) => {
-      const utterance = new SpeechSynthesisUtterance(block);
-      utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
-
-      // Only set playingChapter to false when the LAST block finishes or errors
-      if (index === blocks.length - 1) {
-        utterance.onend = () => setPlayingChapter(false);
-        utterance.onerror = () => setPlayingChapter(false);
-      }
-
-      window.speechSynthesis.speak(utterance);
-    });
+    setPlayingIndex(0);
   };
 
   const handlePlay = (text: string, index: number) => {
-    window.speechSynthesis.cancel();
-    if (playingIndex === index) {
+    if (playingIndex === index && !playingChapter) {
       setPlayingIndex(null);
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'hi-IN'; // Using Hindi as fallback for Sanskrit TTS
-    utterance.onend = () => setPlayingIndex(null);
-    utterance.onerror = () => setPlayingIndex(null);
-    setPlayingIndex(index);
     setPlayingChapter(false);
-    window.speechSynthesis.speak(utterance);
+    setPlayingIndex(index);
   };
+
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+
+    if (playingIndex === null) {
+      return;
+    }
+
+    const block = blocks[playingIndex];
+    if (!block) {
+      setPlayingChapter(false);
+      setPlayingIndex(null);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(block);
+    utterance.lang = 'hi-IN';
+
+    utterance.onend = () => {
+      if (playingChapter) {
+        if (playingIndex < blocks.length - 1) {
+          setPlayingIndex(playingIndex + 1);
+        } else {
+          setPlayingChapter(false);
+          setPlayingIndex(null);
+        }
+      } else {
+        setPlayingIndex(null);
+      }
+    };
+
+    utterance.onerror = () => {
+      setPlayingChapter(false);
+      setPlayingIndex(null);
+    };
+
+    window.speechSynthesis.speak(utterance);
+
+    return () => {
+      utterance.onend = null;
+      utterance.onerror = null;
+      window.speechSynthesis.cancel();
+    };
+  }, [playingIndex, playingChapter, blocks]);
 
   const isChapBookmarked = isChapterBookmarked(chapterId);
 
