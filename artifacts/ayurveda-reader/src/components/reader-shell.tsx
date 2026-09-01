@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BookOpen, Library, Moon, Sun, Circle, PanelLeftClose, PanelLeftOpen, Activity, Settings2, Download, Upload } from 'lucide-react';
+import { BookOpen, Library, Bookmark, Moon, Sun, Circle, PanelLeftClose, PanelLeftOpen, Activity, Settings2, Download, Upload } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { staticLibrary } from '@/lib/static-library';
 import { useReaderSettings } from '@/hooks/use-reader-settings';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +56,7 @@ export function ReaderShell({ children }: ReaderShellProps) {
   }, [theme]);
 
   const isChapter = location.startsWith('/chapter/');
+  const isBookmarks = location === '/bookmarks';
   const themeLabel = theme === 'light' ? 'Day reading' : theme === 'dark' ? 'Night reading' : 'AMOLED black';
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
   const nextThemeLabel = nextTheme === 'light' ? 'day theme' : nextTheme === 'dark' ? 'night theme' : 'AMOLED theme';
@@ -93,12 +95,22 @@ export function ReaderShell({ children }: ReaderShellProps) {
           <Link
             href="/"
             onClick={() => setSidebarOpen(false)}
-            className={`group flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-colors ${!isChapter ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'}`}
+            className={`group flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-colors ${!isChapter && !isBookmarks ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'}`}
             data-testid="link-library"
           >
             <Library size={17} strokeWidth={1.7} />
             <span>Library</span>
-            {!isChapter && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary" />}
+            {!isChapter && !isBookmarks && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary" />}
+          </Link>
+          <Link
+            href="/bookmarks"
+            onClick={() => setSidebarOpen(false)}
+            className={`mt-2 group flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-colors ${isBookmarks ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'}`}
+            data-testid="link-bookmarks"
+          >
+            <Bookmark size={17} strokeWidth={1.7} />
+            <span>Bookmarks</span>
+            {isBookmarks && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary" />}
           </Link>
           {isChapter && (
             <div className="mt-2 flex items-center gap-3 rounded-md bg-sidebar-accent px-3 py-3 text-sm text-sidebar-primary" data-testid="status-current-reading">
@@ -180,6 +192,13 @@ export function ReaderShell({ children }: ReaderShellProps) {
                       step={0.1}
                       value={[settings.spacing]}
                       onValueChange={(val) => updateSettings({ spacing: val[0] })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Hide Shloka Controls</h4>
+                    <Switch
+                      checked={settings.hideShlokaControls}
+                      onCheckedChange={(checked) => updateSettings({ hideShlokaControls: checked })}
                     />
                   </div>
                   <div className="border-t border-border pt-4">

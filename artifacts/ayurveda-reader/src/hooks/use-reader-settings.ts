@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 export type ReaderSettings = {
   textSize: number; // e.g. 1 (default), 1.2, 1.5
   spacing: number;  // e.g. 1.9 (default), 2.5
+  hideShlokaControls: boolean;
 };
 
 export type Bookmark = {
@@ -19,11 +20,13 @@ export type ReaderData = {
   settings: ReaderSettings;
   bookmarks: Bookmark[];
   highlights: Highlight[];
+  chapterBookmarks: string[];
 };
 
 const DEFAULT_SETTINGS: ReaderSettings = {
   textSize: 1,
   spacing: 1.9,
+  hideShlokaControls: false,
 };
 
 const STORAGE_KEY = 'ayurveda-reader-data';
@@ -33,7 +36,13 @@ export function useReaderSettings() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        return {
+          settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+          bookmarks: parsed.bookmarks || [],
+          highlights: parsed.highlights || [],
+          chapterBookmarks: parsed.chapterBookmarks || [],
+        };
       }
     } catch (e) {
       console.error('Failed to parse reader data from local storage', e);
@@ -42,6 +51,7 @@ export function useReaderSettings() {
       settings: DEFAULT_SETTINGS,
       bookmarks: [],
       highlights: [],
+      chapterBookmarks: [],
     };
   });
 
@@ -75,6 +85,27 @@ export function useReaderSettings() {
 
   const isBookmarked = (chapterId: string, blockIndex: number) => {
     return data.bookmarks.some((b) => b.chapterId === chapterId && b.blockIndex === blockIndex);
+  };
+
+  const toggleChapterBookmark = (chapterId: string) => {
+    setData((prev) => {
+      const exists = prev.chapterBookmarks?.includes(chapterId);
+      if (exists) {
+        return {
+          ...prev,
+          chapterBookmarks: (prev.chapterBookmarks || []).filter((id) => id !== chapterId),
+        };
+      } else {
+        return {
+          ...prev,
+          chapterBookmarks: [...(prev.chapterBookmarks || []), chapterId],
+        };
+      }
+    });
+  };
+
+  const isChapterBookmarked = (chapterId: string) => {
+    return data.chapterBookmarks?.includes(chapterId) ?? false;
   };
 
   const toggleHighlight = (chapterId: string, blockIndex: number) => {
@@ -119,9 +150,12 @@ export function useReaderSettings() {
     settings: data.settings,
     bookmarks: data.bookmarks,
     highlights: data.highlights,
+    chapterBookmarks: data.chapterBookmarks,
     updateSettings,
     toggleBookmark,
     isBookmarked,
+    toggleChapterBookmark,
+    isChapterBookmarked,
     toggleHighlight,
     isHighlighted,
     exportData,
